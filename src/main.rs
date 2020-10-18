@@ -33,6 +33,23 @@ fn read_file(filename: PathBuf) -> Result<Vec<String>, Box<dyn Error>> {
     return Ok(urls);
 }
 
+/// Process a given URL
+/// 
+/// # Arguments
+/// * url - URL for which we should get the HTML and generate appropriate output
+/// 
+/// # Returns
+/// * On success, an empty Ok() is returned.
+/// * On Failure, an Err() containing (potentially) useful information is returned.
+fn process_url(url: &String) ->  Result<(), Box<dyn Error>> {
+    
+    let resp = reqwest::blocking::get(url)?.text()?;
+
+    println!("Response is: {:?}", resp);
+
+    Ok(())
+}
+
 /// Spin up parallel tokio tasks for URL processing, one for each URL in our vector
 ///
 /// # Arguments
@@ -47,7 +64,7 @@ async fn get_urls(urls: Vec<String>) ->  Result<(), Box<dyn Error>> {
 
     for url in urls {
         tasks.push(tokio::spawn(async move {
-            println!("Url is: {}", url);
+            process_url(&url).expect(format!("Error processing URL: {}", url).as_str());
         }));
     }
 
