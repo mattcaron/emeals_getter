@@ -1,3 +1,5 @@
+use select::document::Document;
+use select::predicate::Attr;
 use std::error::Error;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
@@ -45,11 +47,15 @@ fn read_file(filename: PathBuf) -> Result<Vec<String>, Box<dyn Error>> {
 /// * On success, an empty Ok() is returned.
 /// * On Failure, an Err() containing (potentially) useful information is returned.
 fn process_url(url: &String, ingredients: Arc<Mutex<Vec<String>>>) -> Result<(), Box<dyn Error>> {
-    let resp = reqwest::blocking::get(url)?.text()?;
+    let resp = reqwest::blocking::get(url)?;
 
-    println!("Response is: {:?}", resp);
+    let document = Document::from_read(resp).unwrap();
 
-    ingredients.lock().unwrap().push("Ham".to_string());
+    // Get all ingredients - main recipe and side dish
+    let all_ingredients = document.find(Attr("itemprop", "ingredients"));
+    for ingredient in all_ingredients {
+        ingredients.lock().unwrap().push(ingredient.text());
+    }
 
     Ok(())
 }
@@ -98,7 +104,8 @@ async fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
         task.await.unwrap();
     }
 
-    // Ingredients should now be populated and unused by any subthreads, so generate the ingredients list
+    // Ingredients should now be populated and unused by any subthreads,
+    // so generate the ingredients list.
     process_ingredients(ingredients.lock().unwrap().to_vec())?;
 
     return Ok(());
