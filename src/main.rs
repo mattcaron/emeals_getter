@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use structopt::StructOpt;
 use tokio::task;
 use tokio::runtime::Runtime;
@@ -41,11 +42,31 @@ fn read_file(filename: PathBuf) -> Result<Vec<String>, Box<dyn Error>> {
 /// # Returns
 /// * On success, an empty Ok() is returned.
 /// * On Failure, an Err() containing (potentially) useful information is returned.
-fn process_url(url: &String) ->  Result<(), Box<dyn Error>> {
+fn process_url(url: &String, ingredients: Arc<Mutex<Vec<String>>>) ->  Result<(), Box<dyn Error>> {
     
     let resp = reqwest::blocking::get(url)?.text()?;
 
     println!("Response is: {:?}", resp);
+
+    ingredients.lock().unwrap().push("Ham".to_string());
+
+    Ok(())
+}
+
+/// Process our ingredients
+///
+/// # Arguments
+/// * ingredients - Vector of ingredients to be processed
+/// 
+/// # Returns
+/// * On success, an empty Ok() is returned.
+/// * On Failure, an Err() containing (potentially) useful information is returned.
+///
+fn process_ingredients(ingredients: Vec<String>) ->  Result<(), Box<dyn Error>> {
+    for ingredient in ingredients {
+        // TODO - more
+        println!("{:?}", ingredient);
+    }
 
     Ok(())
 }
@@ -61,16 +82,22 @@ fn process_url(url: &String) ->  Result<(), Box<dyn Error>> {
 ///
 async fn get_urls(urls: Vec<String>) ->  Result<(), Box<dyn Error>> {
     let mut tasks: Vec<task::JoinHandle<_>> = Vec::new();
+    let ingredients: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 
     for url in urls {
+        // New variable to receive clone before being moved into the function
+        let my_ingredient = ingredients.clone();
         tasks.push(tokio::spawn(async move {
-            process_url(&url).expect(format!("Error processing URL: {}", url).as_str());
+            process_url(&url, my_ingredient).expect(format!("Error processing URL: {}", url).as_str());
         }));
     }
 
     for task in tasks {
         task.await.unwrap();
     }
+
+    // Ingredients should now be populated and unused by any subthreads, so generate the ingredients list
+    process_ingredients(ingredients.lock().unwrap().to_vec())?;
 
     return Ok(());
 
