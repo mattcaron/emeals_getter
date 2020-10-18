@@ -9,6 +9,8 @@ use structopt::StructOpt;
 use tokio::runtime::Runtime;
 use tokio::task;
 
+mod latex_ingredients;
+
 /// Command line arguments
 #[derive(StructOpt)]
 struct Args {
@@ -70,10 +72,7 @@ fn process_url(url: &String, ingredients: Arc<Mutex<Vec<String>>>) -> Result<(),
 /// * On Failure, an Err() containing (potentially) useful information is returned.
 ///
 fn process_ingredients(ingredients: Vec<String>) -> Result<(), Box<dyn Error>> {
-    for ingredient in ingredients {
-        // TODO - more
-        println!("{:?}", ingredient);
-    }
+    latex_ingredients::write_ingredients(ingredients)?;
 
     Ok(())
 }
