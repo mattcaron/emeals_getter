@@ -115,7 +115,7 @@ fn parse_ingredients(ingredients: Vec<String>) -> Result<Ingredients, Box<dyn Er
 pub fn write_ingredients(ingredients: Vec<String>) -> Result<(), Box<dyn Error>> {
     let date = Local::now().format("%Y%m%d");
     fs::create_dir_all(format!("{}", date))?;
-    let file = PathBuf::from(format!("{}/{}.tex", date, date));
+    let file = PathBuf::from(format!("{}/groceries.tex", date));
 
     let parsed_ingredients = parse_ingredients(ingredients)?;
 
