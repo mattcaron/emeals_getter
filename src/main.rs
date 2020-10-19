@@ -45,11 +45,13 @@ fn read_file(filename: PathBuf) -> Result<Vec<String>, Box<dyn Error>> {
 ///
 /// # Arguments
 /// * url - URL for which we should get the HTML and generate appropriate output
+/// * ingredients - reference counted mutexed vector of ingredient strings
+/// * recipes - reference counted mutexed vector of recipes as LaTeX fragments
 ///
 /// # Returns
 /// * On success, an empty Ok() is returned.
 /// * On Failure, an Err() containing (potentially) useful information is returned.
-fn process_url(url: &String, ingredients: Arc<Mutex<Vec<String>>>) -> Result<(), Box<dyn Error>> {
+fn process_url(url: &String, ingredients: Arc<Mutex<Vec<String>>>, recipes: Arc<Mutex<Vec<String>>>) -> Result<(), Box<dyn Error>> {
     let resp = reqwest::blocking::get(url)?;
 
     let document = Document::from_read(resp).unwrap();
@@ -60,22 +62,7 @@ fn process_url(url: &String, ingredients: Arc<Mutex<Vec<String>>>) -> Result<(),
         ingredients.lock().unwrap().push(ingredient.text());
     }
 
-    latex_recipes::write_recipe(document)?;
-
-    Ok(())
-}
-
-/// Process our ingredients
-///
-/// # Arguments
-/// * ingredients - Vector of ingredients to be processed
-///
-/// # Returns
-/// * On success, an empty Ok() is returned.
-/// * On Failure, an Err() containing (potentially) useful information is returned.
-///
-fn process_ingredients(ingredients: Vec<String>) -> Result<(), Box<dyn Error>> {
-    latex_ingredients::write_ingredients(ingredients)?;
+    recipes.lock().unwrap().push(latex_recipes::get_recipe(document)?);
 
     Ok(())
 }
@@ -92,12 +79,14 @@ fn process_ingredients(ingredients: Vec<String>) -> Result<(), Box<dyn Error>> {
 async fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
     let mut tasks: Vec<task::JoinHandle<_>> = Vec::new();
     let ingredients: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+    let recipes: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 
     for url in urls {
-        // New variable to receive clone before being moved into the function
+        // New variable to receive clones before being moved into the function
         let my_ingredient = ingredients.clone();
+        let my_recipe = recipes.clone();
         tasks.push(tokio::spawn(async move {
-            process_url(&url, my_ingredient)
+            process_url(&url, my_ingredient, my_recipe)
                 .expect(format!("Error processing URL: {}", url).as_str());
         }));
     }
@@ -106,10 +95,11 @@ async fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
         task.await.unwrap();
     }
 
-    // Ingredients should now be populated and unused by any subthreads,
-    // so generate the ingredients list.
-    process_ingredients(ingredients.lock().unwrap().to_vec())?;
-
+    // Ingredients and recipes should now be populated and unused by any subthreads,
+    // so generate their respective files ingredients list.
+    latex_ingredients::write_ingredients(ingredients.lock().unwrap().to_vec())?;
+    latex_recipes::write_recipes(recipes.lock().unwrap().to_vec())?;
+    
     return Ok(());
 }
 
