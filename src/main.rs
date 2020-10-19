@@ -10,6 +10,7 @@ use tokio::runtime::Runtime;
 use tokio::task;
 
 mod latex_ingredients;
+mod latex_recipes;
 
 /// Command line arguments
 #[derive(StructOpt)]
@@ -58,6 +59,8 @@ fn process_url(url: &String, ingredients: Arc<Mutex<Vec<String>>>) -> Result<(),
     for ingredient in all_ingredients {
         ingredients.lock().unwrap().push(ingredient.text());
     }
+
+    latex_recipes::write_recipe(document)?;
 
     Ok(())
 }
