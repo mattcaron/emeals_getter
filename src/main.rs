@@ -51,7 +51,11 @@ fn read_file(filename: PathBuf) -> Result<Vec<String>, Box<dyn Error>> {
 /// # Returns
 /// * On success, an empty Ok() is returned.
 /// * On Failure, an Err() containing (potentially) useful information is returned.
-fn process_url(url: &String, ingredients: Arc<Mutex<Vec<String>>>, recipes: Arc<Mutex<Vec<String>>>) -> Result<(), Box<dyn Error>> {
+fn process_url(
+    url: &String,
+    ingredients: Arc<Mutex<Vec<String>>>,
+    recipes: Arc<Mutex<Vec<String>>>,
+) -> Result<(), Box<dyn Error>> {
     let resp = reqwest::blocking::get(url)?;
 
     let document = Document::from_read(resp).unwrap();
@@ -62,7 +66,10 @@ fn process_url(url: &String, ingredients: Arc<Mutex<Vec<String>>>, recipes: Arc<
         ingredients.lock().unwrap().push(ingredient.text());
     }
 
-    recipes.lock().unwrap().push(latex_recipes::get_recipe(document)?);
+    recipes
+        .lock()
+        .unwrap()
+        .push(latex_recipes::get_recipe(document)?);
 
     Ok(())
 }
@@ -99,7 +106,7 @@ async fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
     // so generate their respective files ingredients list.
     latex_ingredients::write_ingredients(ingredients.lock().unwrap().to_vec())?;
     latex_recipes::write_recipes(recipes.lock().unwrap().to_vec())?;
-    
+
     return Ok(());
 }
 
