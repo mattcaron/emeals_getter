@@ -20,11 +20,9 @@ const DOCUMENT_BEGIN: &str = r#"
 
 \setmainfont{Andika}
 
-\begin{document}
-"#;
+\pagestyle{empty}
 
-const NEWPAGE: &str = r#"
-\newpage
+\begin{document}
 "#;
 
 const DOCUMENT_END: &str = r#"
@@ -75,16 +73,20 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     // And then add the recipe name, with the optional side dish below it, slightly smaller.
     let title = recipe.find(Class("mainTitle")).next().unwrap().text();
     let subtitle_match = recipe.find(Class("sideTitle")).next();
+    let mut has_side = false;
 
-    recipe_latex.push_str(format!("{{\\LARGE {}}}\n", title).as_str());
+    recipe_latex.push_str(format!("{{\\noindent\\LARGE {}}}\n\n", title).as_str());
+    recipe_latex.push_str(format!("\\medskip\n").as_str());
     match subtitle_match {
         Some(subtitle) => {
-            recipe_latex.push_str(format!("{{\\Large {}}}\n", subtitle.text()).as_str());
+            recipe_latex.push_str(format!("{{\\noindent\\Large {}}}\n\n", subtitle.text()).as_str());
+            recipe_latex.push_str(format!("\\medskip\n").as_str());
+            has_side = true;
         }
         None => {}
     }
 
-    // get and emit times
+    // Get and emit times
     let prep_time = recipe
         .find(Class("times").descendant(Attr("itemprop", "prepTime")))
         .next()
@@ -101,7 +103,56 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
         .unwrap()
         .text();
 
-    recipe_latex.push_str(format!("{} {} {}\n", prep_time, cook_time, total_time).as_str());
+    recipe_latex.push_str(format!("{} {} {}\n\n", prep_time, cook_time, total_time).as_str());
+    recipe_latex.push_str(format!("\\bigskip\n").as_str());
+
+    // Get and emit main recipe
+    let main_recipe_ingredients = recipe.find(Class("mainInformation").descendant(Attr("itemprop", "ingredients")));
+    let main_recipe_instructions = recipe.find(Class("mainInformation").descendant(Attr("itemprop", "recipeInstructions")).descendant(Name("li")));
+
+    recipe_latex.push_str(format!("{{\\noindent\\Large Ingredients}}\n").as_str());
+    recipe_latex.push_str(format!("{{\\large\n").as_str());
+    recipe_latex.push_str(format!("\\begin{{itemize}}\n").as_str());
+    for ingredient in main_recipe_ingredients {
+        recipe_latex.push_str(format!("    \\item[] {}\n", ingredient.text()).as_str());
+    }
+    recipe_latex.push_str(format!("\\end{{itemize}}\n").as_str());
+    recipe_latex.push_str(format!("}}\n").as_str());
+    recipe_latex.push_str(format!("\\bigskip\n").as_str());
+    recipe_latex.push_str(format!("{{\\noindent\\Large Instructions}}\n").as_str());
+    recipe_latex.push_str(format!("{{\\large\n").as_str());
+    recipe_latex.push_str(format!("\\begin{{enumerate}}\n").as_str());
+    for instruction in main_recipe_instructions {
+        recipe_latex.push_str(format!("    \\item {}\n", instruction.text()).as_str());
+    }
+    recipe_latex.push_str(format!("\\end{{enumerate}}\n").as_str());
+    recipe_latex.push_str(format!("}}\n").as_str());
+    
+    recipe_latex.push_str(format!("\\bigskip\n").as_str());
+    
+    // Get and emit side recipe, if it exists
+    let side_recipe_ingredients = recipe.find(Class("side_dish_section").descendant(Attr("itemprop", "ingredients")));
+    let side_recipe_instructions = recipe.find(Class("side_dish_section").descendant(Attr("itemprop", "recipeInstructions")).descendant(Name("li")));
+
+    if has_side {
+        recipe_latex.push_str(format!("{{\\noindent\\Large Side Dish Ingredients}}\n").as_str());
+        recipe_latex.push_str(format!("{{\\large\n").as_str());
+        recipe_latex.push_str(format!("\\begin{{itemize}}\n").as_str());
+        for ingredient in side_recipe_ingredients {
+            recipe_latex.push_str(format!("    \\item[] {}\n", ingredient.text()).as_str());
+        }
+        recipe_latex.push_str(format!("\\end{{itemize}}\n").as_str());
+        recipe_latex.push_str(format!("}}\n").as_str());
+        recipe_latex.push_str(format!("\\bigskip\n").as_str());
+        recipe_latex.push_str(format!("{{\\noindent\\Large Side Dish Instructions}}\n").as_str());
+        recipe_latex.push_str(format!("{{\\large\n").as_str());
+        recipe_latex.push_str(format!("\\begin{{enumerate}}\n").as_str());
+        for instruction in side_recipe_instructions {
+            recipe_latex.push_str(format!("    \\item {}\n", instruction.text()).as_str());
+        }
+        recipe_latex.push_str(format!("\\end{{enumerate}}\n").as_str());
+        recipe_latex.push_str(format!("}}\n").as_str());
+    }
 
     Ok(recipe_latex)
 }
@@ -121,9 +172,14 @@ pub fn write_recipes(recipes: Vec<String>) -> Result<(), Box<dyn Error>> {
     let file = PathBuf::from(format!("{}/recipes.tex", date));
     let mut file = File::create(file)?;
 
+    file.write(DOCUMENT_BEGIN.as_bytes())?;
+
     for recipe in recipes {
-        file.write(format!("{}\n", recipe).as_bytes())?;
+        file.write(format!("{}\n\\newpage\n", recipe).as_bytes())?;
+        
     }
+
+    file.write(DOCUMENT_END.as_bytes())?;
 
     Ok(())
 }
