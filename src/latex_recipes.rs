@@ -79,7 +79,8 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     recipe_latex.push_str(format!("\\medskip\n").as_str());
     match subtitle_match {
         Some(subtitle) => {
-            recipe_latex.push_str(format!("{{\\noindent\\Large {}}}\n\n", subtitle.text()).as_str());
+            recipe_latex
+                .push_str(format!("{{\\noindent\\Large {}}}\n\n", subtitle.text()).as_str());
             recipe_latex.push_str(format!("\\medskip\n").as_str());
             has_side = true;
         }
@@ -107,8 +108,13 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     recipe_latex.push_str(format!("\\bigskip\n").as_str());
 
     // Get and emit main recipe
-    let main_recipe_ingredients = recipe.find(Class("mainInformation").descendant(Attr("itemprop", "ingredients")));
-    let main_recipe_instructions = recipe.find(Class("mainInformation").descendant(Attr("itemprop", "recipeInstructions")).descendant(Name("li")));
+    let main_recipe_ingredients =
+        recipe.find(Class("mainInformation").descendant(Attr("itemprop", "ingredients")));
+    let main_recipe_instructions = recipe.find(
+        Class("mainInformation")
+            .descendant(Attr("itemprop", "recipeInstructions"))
+            .descendant(Name("li")),
+    );
 
     recipe_latex.push_str(format!("{{\\noindent\\Large Ingredients}}\n").as_str());
     recipe_latex.push_str(format!("{{\\large\n").as_str());
@@ -127,12 +133,17 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     }
     recipe_latex.push_str(format!("\\end{{enumerate}}\n").as_str());
     recipe_latex.push_str(format!("}}\n").as_str());
-    
+
     recipe_latex.push_str(format!("\\bigskip\n").as_str());
-    
+
     // Get and emit side recipe, if it exists
-    let side_recipe_ingredients = recipe.find(Class("side_dish_section").descendant(Attr("itemprop", "ingredients")));
-    let side_recipe_instructions = recipe.find(Class("side_dish_section").descendant(Attr("itemprop", "recipeInstructions")).descendant(Name("li")));
+    let side_recipe_ingredients =
+        recipe.find(Class("side_dish_section").descendant(Attr("itemprop", "ingredients")));
+    let side_recipe_instructions = recipe.find(
+        Class("side_dish_section")
+            .descendant(Attr("itemprop", "recipeInstructions"))
+            .descendant(Name("li")),
+    );
 
     if has_side {
         recipe_latex.push_str(format!("{{\\noindent\\Large Side Dish Ingredients}}\n").as_str());
@@ -176,7 +187,6 @@ pub fn write_recipes(recipes: Vec<String>) -> Result<(), Box<dyn Error>> {
 
     for recipe in recipes {
         file.write(format!("{}\n\\newpage\n", recipe).as_bytes())?;
-        
     }
 
     file.write(DOCUMENT_END.as_bytes())?;
