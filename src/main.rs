@@ -1,6 +1,8 @@
+use chrono::Local;
 use select::document::Document;
 use select::predicate::Attr;
 use std::error::Error;
+use std::fs;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
@@ -9,7 +11,6 @@ use structopt::StructOpt;
 use tokio::runtime::Runtime;
 use tokio::task;
 
-mod latex_ingredients;
 mod latex_recipes;
 
 /// Command line arguments
@@ -74,6 +75,29 @@ fn process_url(
     Ok(())
 }
 
+/// Generate a text file for our ingredients for the week
+///
+/// # Arguments
+/// * ingredients - Vector of ingredients to be put into our LaTeX document
+///
+/// # Returns
+/// * On success, an empty Ok() is returned.
+/// * On Failure, an Err() containing (potentially) useful information is returned.
+///
+pub fn write_ingredients(ingredients: Vec<String>) -> Result<(), Box<dyn Error>> {
+    let date = Local::now().format("%Y%m%d");
+    fs::create_dir_all(format!("{}", date))?;
+    let file = PathBuf::from(format!("{}/groceries.txt", date));
+
+    let mut file = File::create(file)?;
+
+    for ingredient in ingredients {
+        file.write(format!("{}\n", ingredient).as_bytes())?;
+    }
+
+    Ok(())
+}
+
 /// Spin up parallel tokio tasks for URL processing, one for each URL in our vector
 ///
 /// # Arguments
@@ -104,7 +128,7 @@ async fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
 
     // Ingredients and recipes should now be populated and unused by any subthreads,
     // so generate their respective files ingredients list.
-    latex_ingredients::write_ingredients(ingredients.lock().unwrap().to_vec())?;
+    write_ingredients(ingredients.lock().unwrap().to_vec())?;
     latex_recipes::write_recipes(recipes.lock().unwrap().to_vec())?;
 
     return Ok(());
