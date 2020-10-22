@@ -1,10 +1,10 @@
 # emeals_getter
 
-An application to generate a compiled document of recipes and an associated ingredient list from them for eMeals recipes.
+An application to generate a compiled document of recipes and an associated ingredient list from them for emeals recipes.
 
 ## Introduction
 
-This is a custom application which performs a very specific task, for a very picky customer - my son Miles. When he helps me cook, he wants the recipes formatted a very specific way, and the print functionality on Emeals' website doesn't fit that requirement. So, in order to format them that way, I found myself having to copy and paste each recipe into a word processor, massage it to be acceptable, and then print it. This automates the import and massaging, meaning that all that is necessary is a quick proof of the generated document (mainly to ensure the pagination is sane for duplex printing) before you hit print. This should save roughly half an hour per week.
+This is a custom application which performs a very specific task, for a very picky customer - my son Miles. When he helps me cook, he wants the recipes formatted a very specific way, and the print functionality on emeals' website doesn't fit that requirement. So, in order to format them that way, I found myself having to copy and paste each recipe into a word processor, massage it to be acceptable, and then print it. This utility automates the import and massaging, meaning that all that is necessary is a quick proof of the generated document (mainly to ensure the pagination is sane for duplex printing) before you hit print. This should save roughly half an hour per week.
 
 There is also a generated ingredients file to be used as a basis for a grocery list, which is formatted by this application's companion application - [grocery_list_generator](https://github.com/mattcaron/grocery_list_generator). (The reason for the two-step process is the fact that I need to remove things that we already have in the pantry from the list, as well as add other things that we need.)
 
