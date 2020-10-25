@@ -27,7 +27,6 @@ There is also a generated ingredients file to be used as a basis for a grocery l
 ## TODO
 
 - Add test code.
-- Fix the fact that the reqwest calls are blocking.
 - Automatically count pages on the generated doc adjust as necessary to ensure each recipe is, at most, the front and back of a single page.
 - There is much copypasta tech debt that needs refactoring.
 - Add a license file.
