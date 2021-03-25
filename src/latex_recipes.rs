@@ -1,7 +1,7 @@
 /// Module to handle generating latex files for recipes
 use chrono::Local;
 use select::document::Document;
-use select::predicate::{Attr, Class, Name, Predicate};
+use select::predicate::{Class, Name, Predicate};
 use std::error::Error;
 use std::fs;
 use std::fs::File;
@@ -88,31 +88,24 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     }
 
     // Get and emit times
-    let prep_time = recipe
-        .find(Class("times").descendant(Attr("itemprop", "prepTime")))
-        .next()
-        .unwrap()
-        .text();
-    let cook_time = recipe
-        .find(Class("times").descendant(Attr("itemprop", "cookTime")))
-        .next()
-        .unwrap()
-        .text();
-    let total_time = recipe
-        .find(Class("times").descendant(Attr("itemprop", "totalTime")))
-        .next()
-        .unwrap()
-        .text();
 
-    recipe_latex.push_str(format!("{} {} {}\n\n", prep_time, cook_time, total_time).as_str());
-    recipe_latex.push_str(format!("\\bigskip\n").as_str());
+    let times = recipe.find(Class("times").descendant(Name("time")));
+
+    for time in times {
+        recipe_latex.push_str(format!("{} ", time.text()).as_str());
+    }
+
+    recipe_latex.push_str(format!("\n\n\\bigskip\n").as_str());
 
     // Get and emit main recipe
-    let main_recipe_ingredients =
-        recipe.find(Class("mainInformation").descendant(Attr("itemprop", "ingredients")));
+    let main_recipe_ingredients = recipe.find(
+        Class("mainInformation")
+            .descendant(Class("ingredients"))
+            .descendant(Name("li")),
+    );
     let main_recipe_instructions = recipe.find(
         Class("mainInformation")
-            .descendant(Attr("itemprop", "recipeInstructions"))
+            .descendant(Class("instructions"))
             .descendant(Name("li")),
     );
 
@@ -138,10 +131,10 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
 
     // Get and emit side recipe, if it exists
     let side_recipe_ingredients =
-        recipe.find(Class("side_dish_section").descendant(Attr("itemprop", "ingredients")));
+        recipe.find(Class("side_dish_section").descendant(Class("ingredients")));
     let side_recipe_instructions = recipe.find(
         Class("side_dish_section")
-            .descendant(Attr("itemprop", "recipeInstructions"))
+            .descendant(Class("instructions"))
             .descendant(Name("li")),
     );
 
