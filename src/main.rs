@@ -1,6 +1,6 @@
 use chrono::Local;
 use select::document::Document;
-use select::predicate::Attr;
+use select::predicate::{Class, Name, Predicate};
 use std::error::Error;
 use std::fs;
 use std::fs::File;
@@ -62,7 +62,7 @@ fn process_url(
     let document = Document::from_read(resp).unwrap();
 
     // Get all ingredients - main recipe and side dish
-    let all_ingredients = document.find(Attr("itemprop", "ingredients"));
+    let all_ingredients = document.find(Class("ingredients").descendant(Name("li")));
     for ingredient in all_ingredients {
         ingredients.lock().unwrap().push(ingredient.text());
     }
