@@ -126,8 +126,11 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     recipe_latex.push_str(format!("\\bigskip\n").as_str());
 
     // Get and emit side recipe, if it exists
-    let side_recipe_ingredients =
-        recipe.find(Class("side_dish_section").descendant(Class("ingredients")));
+    let side_recipe_ingredients = recipe.find(
+        Class("side_dish_section")
+            .descendant(Class("ingredients"))
+            .descendant(Name("li")),
+    );
     let side_recipe_instructions = recipe.find(
         Class("side_dish_section")
             .descendant(Class("instructions"))
