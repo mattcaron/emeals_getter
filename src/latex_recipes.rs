@@ -64,7 +64,7 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     // Start with the image at the top
     recipe_latex.push_str(
         format!(
-            "\\includegraphics[width=\\linewidth]{{{}}}\n",
+            "\\begin{{center}}\\includegraphics[height=3in]{{{}}}\\end{{center}}\n\n",
             image_filename
         )
         .as_str(),
