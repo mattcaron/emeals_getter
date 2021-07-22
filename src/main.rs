@@ -57,7 +57,12 @@ fn process_url(
     ingredients: Arc<Mutex<Vec<String>>>,
     recipes: Arc<Mutex<Vec<String>>>,
 ) -> Result<(), Box<dyn Error>> {
-    let resp = reqwest::blocking::get(url)?;
+    let client = reqwest::blocking::ClientBuilder::new()
+        .user_agent("Mozilla/5.0")
+        .build()
+        .unwrap();
+
+    let resp = client.get(url).send()?;
 
     let document = Document::from_read(resp).unwrap();
 
@@ -66,6 +71,9 @@ fn process_url(
     for ingredient in all_ingredients {
         ingredients.lock().unwrap().push(ingredient.text());
     }
+
+    // Debug doc dump...
+    // println!("{:?}", document);
 
     recipes
         .lock()
