@@ -8,8 +8,8 @@ use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use structopt::StructOpt;
-use tokio::runtime::Runtime;
-use tokio::task;
+use std::thread;
+
 
 mod latex_recipes;
 
@@ -115,8 +115,8 @@ pub fn write_ingredients(ingredients: Vec<String>) -> Result<(), Box<dyn Error>>
 /// * On success, an empty Ok() is returned.
 /// * On Failure, an Err() containing (potentially) useful information is returned.
 ///
-async fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
-    let mut tasks: Vec<task::JoinHandle<_>> = Vec::new();
+fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
+    let mut tasks: Vec<thread::JoinHandle<_>> = Vec::new();
     let ingredients: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
     let recipes: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 
@@ -124,14 +124,14 @@ async fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
         // New variable to receive clones before being moved into the function
         let my_ingredient = ingredients.clone();
         let my_recipe = recipes.clone();
-        tasks.push(tokio::spawn(async move {
+        tasks.push(thread::spawn(move || {
             process_url(&url, my_ingredient, my_recipe)
                 .expect(format!("Error processing URL: {}", url).as_str());
         }));
     }
 
     for task in tasks {
-        task.await.unwrap();
+        task.join().unwrap();
     }
 
     // Ingredients and recipes should now be populated and unused by any subthreads,
@@ -152,9 +152,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::from_args();
 
     let urls = read_file(args.file)?;
-    let rt = Runtime::new()?;
 
-    rt.block_on(get_urls(urls))?;
+    get_urls(urls)?;
 
     return Ok(());
 }
