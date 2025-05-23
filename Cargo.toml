@@ -11,3 +11,21 @@ chrono = "0.4"
 reqwest = { version = "0.12", features = ["blocking"] }
 select = "0.6"
 structopt = "0.3"
+
+[lints.rust]
+# This codebase should never need to use any unsafe code. 
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+## NB - see clippy.toml for more granular configurations.
+
+# Runtime unwraps are disallowed because they can panic.
+unwrap_used = "deny"
+
+# Expect is effectively unwrap with a nice error message, so it follows the
+# same rationale as above as above.
+expect_used = "deny"
+
+# And this can definitely panic
+panic = "deny"
