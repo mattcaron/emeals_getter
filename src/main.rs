@@ -7,9 +7,8 @@ use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use structopt::StructOpt;
 use std::thread;
-
+use structopt::StructOpt;
 
 mod latex_recipes;
 
