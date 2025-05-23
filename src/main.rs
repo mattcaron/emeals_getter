@@ -1,3 +1,5 @@
+//! Program to parse a list of eMeals URLs and generate recipes from them.
+
 use chrono::Local;
 use select::document::Document;
 use select::predicate::{Class, Name, Predicate};
@@ -99,7 +101,7 @@ pub fn write_ingredients(ingredients: Vec<String>) -> Result<(), Box<dyn Error>>
     let mut file = File::create(file)?;
 
     for ingredient in ingredients {
-        file.write(format!("{}\n", ingredient).as_bytes())?;
+        file.write_all(format!("{}\n", ingredient).as_bytes())?;
     }
 
     Ok(())

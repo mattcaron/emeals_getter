@@ -36,7 +36,7 @@ const DOCUMENT_END: &str = r#"
 ///
 /// # Returns
 /// * On success, a String containing the LaTex Document fragment
-///               describing the recipe is returned.
+///   describing the recipe is returned.
 /// * On Failure, an Err() containing (potentially) useful information is returned.
 ///
 pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
@@ -175,13 +175,13 @@ pub fn write_recipes(recipes: Vec<String>) -> Result<(), Box<dyn Error>> {
     let file = PathBuf::from(format!("{}/recipes.tex", date));
     let mut file = File::create(file)?;
 
-    file.write(DOCUMENT_BEGIN.as_bytes())?;
+    file.write_all(DOCUMENT_BEGIN.as_bytes())?;
 
     for recipe in recipes {
-        file.write(format!("{}\n\\newpage\n", recipe).as_bytes())?;
+        file.write_all(format!("{}\n\\newpage\n", recipe).as_bytes())?;
     }
 
-    file.write(DOCUMENT_END.as_bytes())?;
+    file.write_all(DOCUMENT_END.as_bytes())?;
 
     Ok(())
 }
