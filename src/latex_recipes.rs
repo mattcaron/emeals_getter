@@ -76,15 +76,11 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     let mut has_side = false;
 
     recipe_latex.push_str(format!("{{\\noindent\\Large {}}}\n\n", title).as_str());
-    recipe_latex.push_str(format!("\\medskip\n").as_str());
-    match subtitle_match {
-        Some(subtitle) => {
-            recipe_latex
-                .push_str(format!("{{\\noindent\\large {}}}\n\n", subtitle.text()).as_str());
-            recipe_latex.push_str(format!("\\medskip\n").as_str());
-            has_side = true;
-        }
-        None => {}
+    recipe_latex.push_str("\\medskip\n".to_string().as_str());
+    if let Some(subtitle) = subtitle_match {
+        recipe_latex.push_str(format!("{{\\noindent\\large {}}}\n\n", subtitle.text()).as_str());
+        recipe_latex.push_str("\\medskip\n".to_string().as_str());
+        has_side = true;
     }
 
     // Get and emit times
@@ -95,7 +91,7 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
         recipe_latex.push_str(format!("{} ", time.text()).as_str());
     }
 
-    recipe_latex.push_str(format!("\n\n\\bigskip\n").as_str());
+    recipe_latex.push_str("\n\n\\bigskip\n".to_string().as_str());
 
     // Get and emit main recipe
     let main_recipe_ingredients = recipe.find(
@@ -109,21 +105,21 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
             .descendant(Name("li")),
     );
 
-    recipe_latex.push_str(format!("{{\\noindent\\large Ingredients}}\n").as_str());
-    recipe_latex.push_str(format!("\\begin{{itemize}}\n").as_str());
+    recipe_latex.push_str("{\\noindent\\large Ingredients}\n".to_string().as_str());
+    recipe_latex.push_str("\\begin{itemize}\n".to_string().as_str());
     for ingredient in main_recipe_ingredients {
         recipe_latex.push_str(format!("    \\item[] {}\n", ingredient.text()).as_str());
     }
-    recipe_latex.push_str(format!("\\end{{itemize}}\n").as_str());
-    recipe_latex.push_str(format!("\\bigskip\n").as_str());
-    recipe_latex.push_str(format!("{{\\noindent\\large Instructions}}\n").as_str());
-    recipe_latex.push_str(format!("\\begin{{enumerate}}\n").as_str());
+    recipe_latex.push_str("\\end{itemize}\n".to_string().as_str());
+    recipe_latex.push_str("\\bigskip\n".to_string().as_str());
+    recipe_latex.push_str("{\\noindent\\large Instructions}\n".to_string().as_str());
+    recipe_latex.push_str("\\begin{enumerate}\n".to_string().as_str());
     for instruction in main_recipe_instructions {
         recipe_latex.push_str(format!("    \\item {}\n", instruction.text()).as_str());
     }
-    recipe_latex.push_str(format!("\\end{{enumerate}}\n").as_str());
+    recipe_latex.push_str("\\end{enumerate}\n".to_string().as_str());
 
-    recipe_latex.push_str(format!("\\bigskip\n").as_str());
+    recipe_latex.push_str("\\bigskip\n".to_string().as_str());
 
     // Get and emit side recipe, if it exists
     let side_recipe_ingredients = recipe.find(
@@ -138,19 +134,27 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     );
 
     if has_side {
-        recipe_latex.push_str(format!("{{\\noindent\\large Side Dish Ingredients}}\n").as_str());
-        recipe_latex.push_str(format!("\\begin{{itemize}}\n").as_str());
+        recipe_latex.push_str(
+            "{\\noindent\\large Side Dish Ingredients}\n"
+                .to_string()
+                .as_str(),
+        );
+        recipe_latex.push_str("\\begin{itemize}\n".to_string().as_str());
         for ingredient in side_recipe_ingredients {
             recipe_latex.push_str(format!("    \\item[] {}\n", ingredient.text()).as_str());
         }
-        recipe_latex.push_str(format!("\\end{{itemize}}\n").as_str());
-        recipe_latex.push_str(format!("\\bigskip\n").as_str());
-        recipe_latex.push_str(format!("{{\\noindent\\large Side Dish Instructions}}\n").as_str());
-        recipe_latex.push_str(format!("\\begin{{enumerate}}\n").as_str());
+        recipe_latex.push_str("\\end{itemize}\n".to_string().as_str());
+        recipe_latex.push_str("\\bigskip\n".to_string().as_str());
+        recipe_latex.push_str(
+            "{\\noindent\\large Side Dish Instructions}\n"
+                .to_string()
+                .as_str(),
+        );
+        recipe_latex.push_str("\\begin{enumerate}\n".to_string().as_str());
         for instruction in side_recipe_instructions {
             recipe_latex.push_str(format!("    \\item {}\n", instruction.text()).as_str());
         }
-        recipe_latex.push_str(format!("\\end{{enumerate}}\n").as_str());
+        recipe_latex.push_str("\\end{enumerate}\n".to_string().as_str());
     }
 
     Ok(recipe_latex)

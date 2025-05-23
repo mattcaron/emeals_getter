@@ -38,7 +38,7 @@ fn read_file(filename: PathBuf) -> Result<Vec<String>, Box<dyn Error>> {
         .map(|line| line.expect("Error reading line"))
         .collect();
 
-    return Ok(urls);
+    Ok(urls)
 }
 
 /// Process a given URL
@@ -125,7 +125,7 @@ fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
         let my_recipe = recipes.clone();
         tasks.push(thread::spawn(move || {
             process_url(&url, my_ingredient, my_recipe)
-                .expect(format!("Error processing URL: {}", url).as_str());
+                .unwrap_or_else(|_| panic!("Error processing URL: {}", url));
         }));
     }
 
@@ -138,7 +138,7 @@ fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
     write_ingredients(ingredients.lock().unwrap().to_vec())?;
     latex_recipes::write_recipes(recipes.lock().unwrap().to_vec())?;
 
-    return Ok(());
+    Ok(())
 }
 
 /// Main function
@@ -154,5 +154,5 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     get_urls(urls)?;
 
-    return Ok(());
+    Ok(())
 }
