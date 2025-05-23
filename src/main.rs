@@ -6,7 +6,7 @@ use select::predicate::{Class, Name, Predicate};
 use std::error::Error;
 use std::fs;
 use std::fs::File;
-use std::io::{prelude::*, BufReader};
+use std::io::{prelude::*, read_to_string};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -32,13 +32,17 @@ struct Args {
 /// * On Failure, an Err() containing (potentially) useful information is returned.
 ///
 fn read_file(filename: PathBuf) -> Result<Vec<String>, Box<dyn Error>> {
-    let file = File::open(filename).expect("Could not read input file.");
-    let reader = BufReader::new(file);
+    let file = match File::open(filename) {
+        Ok(file) => file,
+        Err(error) => return Err(format!("Could not open input file: {error}").into()),
+    };
 
-    let urls: Vec<String> = reader
-        .lines()
-        .map(|line| line.expect("Error reading line"))
-        .collect();
+    let contents = match read_to_string(file) {
+        Ok(contents) => contents,
+        Err(error) => return Err(format!("Could not read input file: {error}").into()),
+    };
+
+    let urls: Vec<String> = contents.lines().map(|line| line.to_string()).collect();
 
     Ok(urls)
 }
@@ -60,26 +64,47 @@ fn process_url(
 ) -> Result<(), Box<dyn Error>> {
     let client = reqwest::blocking::ClientBuilder::new()
         .user_agent("Mozilla/5.0")
-        .build()
-        .unwrap();
+        .build()?;
 
     let resp = client.get(url).send()?;
 
-    let document = Document::from_read(resp).unwrap();
+    let document = Document::from_read(resp)?;
 
     // Get all ingredients - main recipe and side dish
     let all_ingredients = document.find(Class("ingredients").descendant(Name("li")));
-    for ingredient in all_ingredients {
-        ingredients.lock().unwrap().push(ingredient.text());
-    }
+
+    // Note - we lock the output list here to avoid 2 things:
+    // 1. lots of locking and unlocking
+    // 2. interleaving the ingredients from different recipes
+
+    match ingredients.lock() {
+        Ok(mut ingredients) => {
+            for ingredient in all_ingredients {
+                ingredients.push(ingredient.text());
+            }
+        }
+        Err(error) => {
+            return Err(format!(
+                "Failed to acquire ingredients mutex for adding ingredients list: {}",
+                error
+            )
+            .into())
+        }
+    };
 
     // Debug doc dump...
     // println!("{:?}", document);
 
-    recipes
-        .lock()
-        .unwrap()
-        .push(latex_recipes::get_recipe(document)?);
+    match recipes.lock() {
+        Ok(mut recipe) => recipe.push(latex_recipes::get_recipe(document)?),
+        Err(error) => {
+            return Err(format!(
+                "Failed to acquire recipe mutex for writing an entry: {}",
+                error
+            )
+            .into())
+        }
+    };
 
     Ok(())
 }
@@ -127,18 +152,42 @@ fn get_urls(urls: Vec<String>) -> Result<(), Box<dyn Error>> {
         let my_recipe = recipes.clone();
         tasks.push(thread::spawn(move || {
             process_url(&url, my_ingredient, my_recipe)
-                .unwrap_or_else(|_| panic!("Error processing URL: {}", url));
+                .unwrap_or_else(|_| eprintln!("Error processing URL: {}", url));
         }));
     }
 
     for task in tasks {
-        task.join().unwrap();
+        match task.join() {
+            Ok(()) => (),
+            Err(error) => {
+                eprintln!("A task join() failed: {error:?}. The recipe list may be incomplete.")
+            }
+        };
     }
 
     // Ingredients and recipes should now be populated and unused by any subthreads,
-    // so generate their respective files ingredients list.
-    write_ingredients(ingredients.lock().unwrap().to_vec())?;
-    latex_recipes::write_recipes(recipes.lock().unwrap().to_vec())?;
+    // so generate their respective files' ingredients list.
+    match ingredients.lock() {
+        Ok(ingredients) => write_ingredients(ingredients.to_vec())?,
+        Err(error) => {
+            return Err(format!(
+                "Failed to acquire ingredients mutex for writing to file: {}",
+                error
+            )
+            .into())
+        }
+    }
+
+    match recipes.lock() {
+        Ok(recipes) => latex_recipes::write_recipes(recipes.to_vec())?,
+        Err(error) => {
+            return Err(format!(
+                "Failed to acquire recipe mutex for writing to file: {}",
+                error
+            )
+            .into())
+        }
+    }
 
     Ok(())
 }

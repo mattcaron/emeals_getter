@@ -29,7 +29,24 @@ const DOCUMENT_END: &str = r#"
 \end{document}
 "#;
 
-/// Generate a LaTex fragement for this recipe, and get any images used in it
+/// Collect the image URL for a recipe, if any.
+///
+/// # Arguments
+/// * recipe - the parsed document representing the recipe
+///
+/// * On success, a String containing the url of the image.
+/// * On Failure, None.
+fn get_image_url(recipe: &Document) -> Option<String> {
+    match recipe
+        .find(Class("recipe_image").descendant(Name("img")))
+        .next()
+    {
+        Some(img) => Some(img.attr("src")?.to_string()),
+        None => None,
+    }
+}
+
+/// Generate a LaTex fragment for this recipe, and get any images used in it
 ///
 /// # Arguments
 /// * recipe - the parsed document representing the recipe
@@ -43,35 +60,50 @@ pub fn get_recipe(recipe: Document) -> Result<String, Box<dyn Error>> {
     let date = Local::now().format("%Y%m%d");
     fs::create_dir_all(format!("{}", date))?;
 
-    // Collect the image for the recipe
-    let image_url = recipe
-        .find(Class("recipe_image").descendant(Name("img")))
-        .next()
-        .unwrap()
-        .attr("src")
-        .unwrap();
-
-    let split_url: Vec<&str> = image_url.split("/").collect();
-    let image_filename = split_url.last().unwrap();
-    let image_path = PathBuf::from(format!("{}/{}", date, image_filename));
-    let mut image_dest = File::create(image_path)?;
-    let mut image_content = Cursor::new(reqwest::blocking::get(image_url)?.bytes()?);
-    copy(&mut image_content, &mut image_dest)?;
+    // Get the recipe title first, because we use it for error messages later.
+    // If the recipe has no title, this is unrecoverable.
+    let title = match recipe.find(Class("mainTitle")).next() {
+        Some(title) => title.text(),
+        None => return Err("Unable to find title.".into()),
+    };
 
     // Generate the LaTeX for the recipe
     let mut recipe_latex: String = String::new();
 
-    // Start with the image at the top
-    recipe_latex.push_str(
-        format!(
-            "\\begin{{center}}\\includegraphics[height=3in]{{{}}}\\end{{center}}\n\n",
-            image_filename
-        )
-        .as_str(),
-    );
+    // Get the the image URL for the recipe, if any
+    let image_url = get_image_url(&recipe);
+
+    // Download the image, if any
+    match image_url {
+        Some(url) => {
+            let url_copy = url.clone();
+            let split_url: Vec<&str> = url.split("/").collect();
+            match split_url.last() {
+                Some(image_filename) => {
+                    let image_path = PathBuf::from(format!("{}/{}", date, image_filename));
+                    let mut image_dest = File::create(image_path)?;
+                    let mut image_content = Cursor::new(reqwest::blocking::get(url_copy)?.bytes()?);
+                    copy(&mut image_content, &mut image_dest)?;
+
+                    // Start with the image at the top
+                    recipe_latex.push_str(
+                        format!(
+                    "\\begin{{center}}\\includegraphics[height=3in]{{{}}}\\end{{center}}\n\n",
+                    image_filename
+                )
+                        .as_str(),
+                    );
+                }
+                None => eprintln!(
+                    "WARNING: Unable to figure out the filename in {url_copy}, not downloading."
+                ),
+            };
+        }
+        // This is recoverable - just warn that we don't have an image.
+        None => eprintln!("WARNING: No image for recipe: \"{title}\""),
+    }
 
     // And then add the recipe name, with the optional side dish below it, slightly smaller.
-    let title = recipe.find(Class("mainTitle")).next().unwrap().text();
     let subtitle_match = recipe.find(Class("sideTitle")).next();
     let mut has_side = false;
 
